@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Untukmu — Website Romantis</title>
+  <meta name="description" content="Website romantis dengan foto, teks, dan musik. Dibuat khusus untuk orang tercinta." />
+
+  <!--
+    ❥ Fitur Utama
+      - Layout dua kolom: foto & teks
+      - Musik dengan tombol Play/Pause, Mute, Volume, Progress
+      - Background gradien animasi + partikel hati
+      - Efek teks mesin ketik (typewriter)
+      - Galeri foto + lightbox sederhana
+      - Timeline cerita dengan animasi saat discroll
+      - Hitung mundur ke tanggal spesial
+      - Toggle Tema (Romantis / Malam)
+      - Form pesan pribadi tersimpan di localStorage
+      - Responsif untuk HP & Desktop
+
+    ❥ Cara Pakai Cepat
+      1) Ganti semua src gambar: assets/foto1.jpg, foto2.jpg, dst. dgn koleksi pribadimu
+      2) Ganti src audio: assets/lagu.mp3
+      3) Ubah tanggal spesial di JS (ANNI_DATE)
+      4) Edit teks-teks di bagian <section> sesuai keinginan
+  -->
+
+  <style>
+    /* ------------------------------
+       Reset & Variabel Tema
+       ------------------------------ */
+    :root {
+      --bg-1: #ff9a9e;
+      --bg-2: #fad0c4;
+      --bg-3: #fbc2eb;
+      --bg-4: #a6c0fe;
+      --text: #ffffff;
+      --glass: rgba(255,255,255,0.18);
+      --glass-strong: rgba(255,255,255,0.28);
+      --shadow: rgba(0,0,0,0.35);
+      --accent: #fff6a9;
+      --accent-2: #ffd1dc;
+    }
+    [data-theme="night"] {
+      --bg-1: #0f2027;
+      --bg-2: #203a43;
+      --bg-3: #2c5364;
+      --bg-4: #15202b;
+      --text: #e8f0fe;
+      --glass: rgba(0,0,0,0.35);
+      --glass-strong: rgba(0,0,0,0.55);
+      --shadow: rgba(0,0,0,0.6);
+      --accent: #a5f3fc;
+      --accent-2: #f0abfc;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      color: var(--text);
+      background: linear-gradient(135deg, var(--bg-1), var(--bg-2), var(--bg-3), var(--bg-4));
+      background-size: 400% 400%;
+      animation: gradientBG 18s ease infinite;
+    }
+
+    @keyframes gradientBG {
+      0%   { background-position: 0% 50%; }
+      50%  { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    /* ------------------------------
+       Dekorasi Partikel Hati
+       ------------------------------ */
+    .hearts {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .heart {
+      position: absolute;
+      width: 14px; height: 14px;
+      background: var(--accent-2);
+      transform: rotate(45deg);
+      opacity: 0.7;
+      border-radius: 2px;
+      box-shadow: 0 4px 14px var(--shadow);
+      animation: floatUp 12s linear infinite;
+    }
+    .heart::before, .heart::after {
+      content: "";
+      position: absolute;
+      width: 14px; height: 14px;
+      background: var(--accent-2);
+      border-radius: 50%;
+    }
+    .heart::before { left: -7px; }
+    .heart::after  { top: -7px; }
+    @keyframes floatUp {
+      0% { transform: translateY(100vh) rotate(45deg) scale(0.8); opacity: 0; }
+      10%{ opacity: 0.8; }
+      100%{ transform: translateY(-20vh) rotate(45deg) scale(1.2); opacity: 0; }
+    }
+
+    /* ------------------------------
+       Header & Navigasi Mini
+       ------------------------------ */
+    header {
+      position: sticky;
+      top: 0; z-index: 10;
+      backdrop-filter: blur(8px);
+      background: var(--glass);
+      border-bottom: 1px solid rgba(255,255,255,0.15);
+      box-shadow: 0 10px 30px var(--shadow);
+    }
+    .wrap {
+      max-width: 1180px; margin: 0 auto; padding: 16px 20px;
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    }
+    .brand { font-weight: 700; letter-spacing: .5px; }
+    nav a {
+      color: var(--text); text-decoration: none; opacity: .9; margin: 0 8px; font-size: .95rem;
+    }
+    nav a:hover { text-decoration: underline; }
+    .btn {
+      background: var(--glass-strong); color: var(--text);
+      border: 1px solid rgba(255,255,255,0.2);
+      padding: 10px 16px; border-radius: 18px;
+      cursor: pointer; box-shadow: 0 6px 18px var(--shadow);
+    }
+
+    /* ------------------------------
+       Section: Hero (Layout Dua Kolom)
+       ------------------------------ */
+    .hero {
+      position: relative; z-index: 1;
+      min-height: 92vh;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(280px, 1fr));
+      align-items: center; gap: 32px;
+      padding: 60px 20px;
+      max-width: 1180px; margin: 0 auto;
+    }
+    .hero-card {
+      background: var(--glass);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 22px;
+      padding: 28px;
+      box-shadow: 0 12px 40px var(--shadow);
+      transition: transform .3s ease;
+    }
+    .hero-card:hover { transform: translateY(-4px); }
+    .hero-photo {
+      display: grid; place-items: center; text-align: center;
+    }
+    .hero-photo img {
+      width: 100%; max-width: 640px; aspect-ratio: 4/3; object-fit: cover;
+      border-radius: 20px;
+      box-shadow: 0 10px 30px var(--shadow);
+    }
+    .hero-text h1 { font-size: clamp(2rem, 4vw, 3rem); margin: 0 0 12px; }
+    .hero-text p  { font-size: clamp(1.05rem, 1.5vw, 1.25rem); line-height: 1.9; opacity: .95; }
+    .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+
+    /* Tombol Musik */
+    .music {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      background: var(--glass);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 999px; padding: 10px 14px;
+    }
+    .music button, .music input[type="range"] {
+      appearance: none; border: none; outline: none; cursor: pointer;
+    }
+    .music .play { padding: 10px 14px; border-radius: 999px; }
+    .music .mute { padding: 10px 14px; border-radius: 999px; }
+    .music .time { font-variant-numeric: tabular-nums; opacity: .9; font-size: .95rem; }
+    .bar { width: 220px; }
+    .vol { width: 90px; }
+    input[type="range"] {
+      height: 6px; border-radius: 4px; background: rgba(255,255,255,0.35);
+    }
+
+    /* ------------------------------
+       Section: Love Letter (Typewriter)
+       ------------------------------ */
+    .letter {
+      position: relative; z-index: 1;
+      max-width: 980px; margin: 40px auto; padding: 26px 22px;
+      background: var(--glass);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 20px; box-shadow: 0 10px 30px var(--shadow);
+    }
+    .letter h2 { margin: 0 0 12px; font-size: clamp(1.4rem, 2.6vw, 2rem); }
+    .typewriter {
+      --caret: var(--accent);
+      font-size: clamp(1.05rem, 1.6vw, 1.25rem);
+      line-height: 2; white-space: pre-wrap;
+      border-right: 2px solid var(--caret);
+      animation: caretBlink 1s steps(1) infinite;
+      min-height: 5lh;
+    }
+    @keyframes caretBlink {
+      50% { border-color: transparent; }
+    }
+
+    /* ------------------------------
+       Section: Gallery + Lightbox
+       ------------------------------ */
+    .gallery {
+      position: relative; z-index: 1;
+      max-width: 1180px; margin: 50px auto; padding: 0 20px;
+    }
+    .grid {
+      display: grid; gap: 16px;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    }
+    .card-img {
+      position: relative; overflow: hidden; border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.18);
+      aspect-ratio: 4/3;
+      box-shadow: 0 10px 24px var(--shadow);
+    }
+    .card-img img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .35s ease; }
+    .card-img:hover img { transform: scale(1.06); }
+
+    .lightbox {
+      position: fixed; inset: 0; display: none;
+      place-items: center; background: rgba(0,0,0,0.65);
+      z-index: 30; padding: 20px;
+    }
+    .lightbox.active { display: grid; }
+    .lightbox img { max-width: min(96vw, 1200px); max-height: 86vh; border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
+
+    /* ------------------------------
+       Section: Timeline Cerita
+       ------------------------------ */
+    .timeline {
+      position: relative; z-index: 1;
+      max-width: 1000px; margin: 60px auto; padding: 10px 20px;
+    }
+    .tl-item {
+      display: grid; grid-template-columns: 120px 1fr; gap: 18px;
+      align-items: start; margin: 22px 0; opacity: 0; transform: translateY(12px);
+      transition: .6s ease;
+    }
+    .tl-item.show { opacity: 1; transform: translateY(0); }
+    .tl-date {
+      background: var(--glass); border: 1px solid rgba(255,255,255,0.18);
+      padding: 10px 12px; border-radius: 12px; text-align: center; font-weight: 700;
+      box-shadow: 0 8px 22px var(--shadow);
+    }
+    .tl-card {
+      background: var(--glass); border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 16px; padding: 16px; line-height: 1.8;
+      box-shadow: 0 8px 22px var(--shadow);
+    }
+
+    /* ------------------------------
+       Section: Countdown ke Hari Spesial
+       ------------------------------ */
+    .countdown {
+      position: relative; z-index: 1;
+      max-width: 980px; margin: 60px auto; padding: 22px;
+      background: var(--glass); border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 18px; text-align: center; box-shadow: 0 10px 30px var(--shadow);
+    }
+    .cd-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 12px; }
+    .cd-box {
+      background: rgba(255,255,255,0.12); padding: 16px; border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 8px 20px var(--shadow);
+    }
+    .cd-num { font-size: clamp(1.6rem, 3vw, 2.2rem); font-weight: 800; }
+    .cd-lbl { opacity: .9; font-size: .95rem; }
+
+    /* ------------------------------
+       Section: Pesan Pribadi (localStorage)
+       ------------------------------ */
+    .message {
+      position: relative; z-index: 1; max-width: 980px; margin: 60px auto; padding: 22px;
+      background: var(--glass); border-radius: 16px; border: 1px solid rgba(255,255,255,0.18);
+      box-shadow: 0 10px 30px var(--shadow);
+    }
+    .message form { display: grid; gap: 12px; }
+    .field {
+      background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 12px; padding: 12px 14px; color: var(--text);
+      font-size: 1rem; width: 100%;
+    }
+    .field::placeholder { color: rgba(255,255,255,0.7); }
+
+    /* ------------------------------
+       Footer
+       ------------------------------ */
+    footer { text-align: center; padding: 40px 20px; opacity: .9; }
+
+    /* ------------------------------
+       Responsif
+       ------------------------------ */
+    @media (max-width: 920px) {
+      .hero { grid-template-columns: 1fr; padding-top: 28px; }
+      .bar { width: 180px; }
+    }
+    @media (max-width: 540px) {
+      .cd-grid { grid-template-columns: repeat(2, 1fr); }
+      .vol { width: 70px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Partikel Hati -->
+  <div class="hearts" aria-hidden="true" id="hearts"></div>
+
+  <!-- Header -->
+  <header>
+    <div class="wrap">
+      <div class="brand">Untukmu ❤️</div>
+      <nav>
+        <a href="#hero">Beranda</a>
+        <a href="#surat">Surat</a>
+        <a href="#galeri">Galeri</a>
+        <a href="#cerita">Cerita</a>
+      </nav>
+      <button class="btn" id="themeToggle" aria-label="Toggle tema">🌙 Tema</button>
+    </div>
+  </header>
+
+  <!-- Hero: Layout Foto & Teks -->
+  <main id="hero" class="hero">
+    <!-- Kolom Foto -->
+    <div class="hero-card hero-photo" aria-label="Foto">
+      <img src="assets/foto1.jpg" alt="My fav person" />
+    </div>
+
+    <!-- Kolom Teks & Musik -->
+    <div class="hero-card hero-text">
+      <h1>Untuk mu</h1>
+      <p>
+      jujur aku bingung kok bisa ada yang bisa suka sama aku yang tololnya kelewatan,tapi ada seseorang yaitu dia yang tertarik kepadakau entah dari segi apa dia melihat ku
+      </p>
+
+      <!-- Kontrol Musik Kustom -->
+      <div class="row music" role="group" aria-label="Kontrol musik">
+        <button class="btn play" id="playBtn" aria-label="Putar atau jeda">▶️</button>
+        <button class="btn mute" id="muteBtn" aria-label="Bisu atau bunyikan">🔇</button>
+        <span class="time" id="current">00:00</span>
+        <input class="bar" id="seek" type="range" min="0" value="0" step="0.01" aria-label="Progress" />
+        <span class="time" id="duration">00:00</span>
+        <input class="vol" id="volume" type="range" min="0" max="1" step="0.01" value="0.8" aria-label="Volume" />
+      </div>
+      <audio id="player" src="assets/lagu.mp3" preload="metadata"></audio>
+
+      <div class="row">
+        <button class="btn" id="confetti">🎉 Rayakan</button>
+        <a class="btn" href="#surat">💌 Baca Surat</a>
+      </div>
+    </div>
+  </main>
+
+  <!-- Surat Cinta (Typewriter) -->
+  <section id="surat" class="letter" aria-labelledby="surat-title">
+    <h2 id="surat-title">Surat Kecil Untukmu</h2>
+    <div id="typing" class="typewriter" aria-live="polite"></div>
+  </section>
+
+  <!-- Galeri -->
+  <section id="galeri" class="gallery" aria-labelledby="galeri-title">
+    <h2 id="galeri-title" style="margin:0 0 12px;">Galeri</h2>
+    <p style="opacity:.95;margin:0 0 16px;">my fav person. 💞</p>
+    <div class="grid" id="grid">
+      <figure class="card-img"><img src="assets/foto2.jpg" alt="1" /></figure>
+      <figure class="card-img"><img src="assets/foto3.jpg" alt="2" /></figure>
+      <figure class="card-img"><img src="assets/foto4.jpg" alt="3" /></figure>
+      <figure class="card-img"><img src="assets/foto5.jpg" alt="4" /></figure>
+`
+    </div>
+  </section>
+
+  <!-- Lightbox -->
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Gambar diperbesar">
+    <img id="lightboxImg" src="" alt="Gambar diperbesar" />
+  </div>
+
+  <!-- Timeline Cerita -->
+  <section id="cerita" class="timeline" aria-labelledby="cerita-title">
+    <h2 id="cerita-title" style="margin:0 0 12px;">Jejak Cerita Kita</h2>
+
+    <article class="tl-item">
+      <div class="tl-date">Hari Pertama</div>
+      <div class="tl-card">di saat pertama kali kau bilang kau suka sama ku .</div>
+    </article>
+
+    <article class="tl-item">
+      <div class="tl-date">kebingungan</div>
+      <div class="tl-card">aku bingun mengapa bisa bisa nya ada yang tahan sama sifat ku yang begini,karena di saat itu aku gamon dan mengagumi kembali orang yang kutemui saat SMP.</div>
+    </article>
+
+    <article class="tl-item">
+      <div class="tl-date">Hal yang harus kau tau</div>
+      <div class="tl-card">Kita mungkin tak bisa selamanya karena aku memiliki cita cita untuk menjadi romo.</div>
+    </article>
+
+    <article class="tl-item">
+      <div class="tl-date">Hari Ini</div>
+      <div class="tl-card">Aku selalu mencintai selalu, dengan cara yang selalu baru.</div>
+    </article>
+  </section>
+  <!-- Pesan Pribadi -->
+  <section class="message" aria-labelledby="msg-title">
+    <h2 id="msg-title" style="margin:0 0 10px;">Pesan Rahasia Untukmu</h2>
+    <p style="margin:0 0 12px; opacity:.95;">Tulis pesan rahasia yang akan tersimpan di perangkatmu. Kapan saja bisa diubah.</p>
+    <form id="msgForm">
+      <input class="field" id="msgTitle" placeholder="Judul pesan (mis. Untuk bidadariku)" />
+      <textarea class="field" id="msgBody" rows="4" placeholder="Ketik pesan romantismu di sini..."></textarea>
+      <div class="row">
+        <button class="btn" type="submit">Simpan</button>
+        <button class="btn" type="button" id="clearMsg">Hapus</button>
+      </div>
+      <p id="msgSaved" style="margin:8px 0 0; opacity:.9;"></p>
+    </form>
+  </section>
+
+  <footer>
+    <small>© <span id="year"></span> Untukmu. Dibuat dengan sepenuh hati. 💖</small>
+  </footer>
+
+  <script>
+    // =============================================================
+    // Utilitas kecil
+    // =============================================================
+    const $ = (sel, ctx=document) => ctx.querySelector(sel);
+    const $$ = (sel, ctx=document) => Array.from(ctx.querySelectorAll(sel));
+    const pad = (n) => n.toString().padStart(2,'0');
+
+    // =============================================================
+    // Partikel Hati Dinamis
+    // =============================================================
+    (function makeHearts(){
+      const container = $('#hearts');
+      const COUNT = 30; // jumlah hati
+      for(let i=0;i<COUNT;i++){
+        const h = document.createElement('div');
+        h.className = 'heart';
+        h.style.left = Math.random()*100 + 'vw';
+        h.style.animationDuration = (8 + Math.random()*10) + 's';
+        h.style.animationDelay = (-Math.random()*10) + 's';
+        h.style.opacity = (0.3 + Math.random()*0.7).toFixed(2);
+        const size = 10 + Math.random()*16; h.style.width = size+'px'; h.style.height = size+'px';
+        container.appendChild(h);
+      }
+    })();
+
+    // =============================================================
+    // Tema: Romantis <-> Malam
+    // =============================================================
+    (function theme(){
+      const btn = $('#themeToggle');
+      const saved = localStorage.getItem('theme');
+      if(saved) document.documentElement.setAttribute('data-theme', saved);
+      btn.addEventListener('click', () => {
+        const cur = document.documentElement.getAttribute('data-theme');
+        const next = cur === 'night' ? '' : 'night';
+        if(next) document.documentElement.setAttribute('data-theme', next);
+        else document.documentElement.removeAttribute('data-theme');
+        localStorage.setItem('theme', next);
+      });
+    })();
+
+    // =============================================================
+    // Pemutar Musik Kustom
+    // =============================================================
+    (function player(){
+      const audio = $('#player');
+      const playBtn = $('#playBtn');
+      const muteBtn = $('#muteBtn');
+      const seek = $('#seek');
+      const vol = $('#volume');
+      const cur = $('#current');
+      const dur = $('#duration');
+
+      // Update durasi saat metadata siap
+      audio.addEventListener('loadedmetadata', () => {
+        seek.max = audio.duration || 0;
+        dur.textContent = isFinite(audio.duration) ? `${pad(Math.floor(audio.duration/60))}:${pad(Math.floor(audio.duration%60))}` : '00:00';
+      });
+
+      // Play / Pause
+      playBtn.addEventListener('click', async () => {
+        if(audio.paused){
+          try { await audio.play(); playBtn.textContent = '⏸️'; }
+          catch(err){ alert('Browser memblokir autoplay. Tekan tombol sekali lagi ya.'); }
+        } else { audio.pause(); playBtn.textContent = '▶️'; }
+      });
+
+      // Mute
+      muteBtn.addEventListener('click', () => {
+        audio.muted = !audio.muted;
+        muteBtn.textContent = audio.muted ? '🔊' : '🔇';
+      });
+
+      // Volume
+      vol.addEventListener('input', () => { audio.volume = +vol.value; });
+
+      // Update waktu berjalan
+      audio.addEventListener('timeupdate', () => {
+        seek.value = audio.currentTime;
+        cur.textContent = `${pad(Math.floor(audio.currentTime/60))}:${pad(Math.floor(audio.currentTime%60))}`;
+      });
+
+      // Seek
+      seek.addEventListener('input', () => { audio.currentTime = +seek.value; });
+
+      // Kembalikan ikon saat selesai
+      audio.addEventListener('ended', () => { playBtn.textContent = '▶️'; });
+    })();
+
+    // =============================================================
+    // Typewriter: Surat Cinta
+    // =============================================================
+    (function typewriter(){
+      const el = $('#typing');
+      const text = `Aku tak pernah meminta apa-apa dari semesta,\nnamun semesta menghadiahkanku dirimu.\n.`;
+      let i = 0;
+      function tick(){
+        if(i <= text.length){
+          el.textContent = text.slice(0, i++);
+          requestAnimationFrame(() => setTimeout(tick, 18));
+        }
+      }
+      tick();
+    })();
+
+    // =============================================================
+    // Galeri + Lightbox
+    // =============================================================
+    (function gallery(){
+      const box = $('#lightbox');
+      const img = $('#lightboxImg');
+      $$('#galeri .card-img img').forEach((it) => {
+        it.addEventListener('click', () => {
+          img.src = it.src; box.classList.add('active');
+          img.alt = it.alt || 'Gambar diperbesar';
+        });
+      });
+      box.addEventListener('click', (e) => { if(e.target === box || e.target === img) box.classList.remove('active'); });
+      document.addEventListener('keydown', (e) => { if(e.key === 'Escape') box.classList.remove('active'); });
+    })();
+
+    // =============================================================
+    // Timeline: Muncul Saat Discroll
+    // =============================================================
+    (function timeline(){
+      const obs = new IntersectionObserver((ents) => {
+        ents.forEach((e) => { if(e.isIntersecting) e.target.classList.add('show'); });
+      }, { threshold: 0.15 });
+      $$('.tl-item').forEach(el => obs.observe(el));
+    })();
+
+    // =============================================================
+    // Countdown ke Tanggal Spesial
+    // =============================================================
+    (function countdown(){
+      // GANTI tanggal spesialmu di sini (YYYY, MM-1, DD)
+      const ANNI_DATE = new Date(2025, 7, 17, 0, 0, 0); // 17 Agustus 2025 contoh
+
+      const ids = { d: $('#days'), h: $('#hours'), m: $('#minutes'), s: $('#seconds') };
+      function tick(){
+        const now = new Date();
+        const diff = ANNI_DATE - now;
+        if(diff <= 0){ ids.d.textContent = 0; ids.h.textContent = 0; ids.m.textContent = 0; ids.s.textContent = 0; return; }
+        const sec = Math.floor(diff/1000);
+        const d = Math.floor(sec/86400);
+        const h = Math.floor((sec%86400)/3600);
+        const m = Math.floor((sec%3600)/60);
+        const s = sec%60;
+        ids.d.textContent = d; ids.h.textContent = h; ids.m.textContent = m; ids.s.textContent = s;
+        requestAnimationFrame(() => setTimeout(tick, 500));
+      }
+      tick();
+    })();
+
+    // =============================================================
+    // Pesan Pribadi (localStorage)
+    // =============================================================
+    (function secret(){
+      const KEY = 'secret-msg-v1';
+      const form = $('#msgForm');
+      const title = $('#msgTitle');
+      const body = $('#msgBody');
+      const saved = $('#msgSaved');
+      const clearBtn = $('#clearMsg');
+
+      const data = JSON.parse(localStorage.getItem(KEY) || '{}');
+      if(data.title) title.value = data.title;
+      if(data.body) body.value = data.body;
+
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const payload = { title: title.value.trim(), body: body.value.trim(), at: Date.now() };
+        localStorage.setItem(KEY, JSON.stringify(payload));
+        saved.textContent = 'Tersimpan ✓';
+        setTimeout(() => saved.textContent = '', 1800);
+      });
+
+      clearBtn.addEventListener('click', () => {
+        localStorage.removeItem(KEY);
+        title.value = ''; body.value = '';
+        saved.textContent = 'Dihapus ✓';
+        setTimeout(() => saved.textContent = '', 1800);
+      });
+    })();
+
+    // =============================================================
+    // Confetti sederhana (emoji)
+    // =============================================================
+    (function confetti(){
+      const btn = $('#confetti');
+      btn.addEventListener('click', () => {
+        for(let i=0;i<40;i++) drop();
+      });
+      function drop(){
+        const s = document.createElement('div');
+        s.textContent = ['💖','💘','💝','✨','🌸'][Math.floor(Math.random()*5)];
+        s.style.position = 'fixed';
+        s.style.left = Math.random()*100 + 'vw';
+        s.style.top = '-10vh';
+        s.style.fontSize = (18+Math.random()*20)+'px';
+        s.style.transform = `translateY(0)`;
+        s.style.transition = `transform ${2+Math.random()*2}s cubic-bezier(.2,.6,.2,1), opacity .6s`;
+        s.style.zIndex = 50;
+        document.body.appendChild(s);
+        requestAnimationFrame(() => {
+          s.style.transform = `translateY(${110+Math.random()*20}vh) rotate(${(Math.random()*360)|0}deg)`;
+          s.style.opacity = 0.2 + Math.random()*0.8;
+        });
+        setTimeout(()=> s.remove(), 4200);
+      }
+    })();
+
+    // Tahun dinamis di footer
+    $('#year').textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
